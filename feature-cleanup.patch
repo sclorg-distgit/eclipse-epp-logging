@@ -1,0 +1,60 @@
+commit 90bd3e5362b1d996dad87acc567033bca5f4df3b
+Author: Sopot Cela <scela@redhat.com>
+Date:   Wed Mar 16 15:20:23 2016 +0100
+
+    Feature cleanup
+
+diff --git a/bundles/org.eclipse.epp.logging.aeri.core/META-INF/MANIFEST.MF b/bundles/org.eclipse.epp.logging.aeri.core/META-INF/MANIFEST.MF
+index f137a68..427c954 100644
+--- a/bundles/org.eclipse.epp.logging.aeri.core/META-INF/MANIFEST.MF
++++ b/bundles/org.eclipse.epp.logging.aeri.core/META-INF/MANIFEST.MF
+@@ -12,12 +12,12 @@ Require-Bundle: org.eclipse.core.runtime,
+  org.eclipse.jface,
+  org.eclipse.jdt.annotation;bundle-version="[1.0.0,2.0.0)";resolution:=optional,
+  org.eclipse.emf.ecore
+-Import-Package: com.google.common.annotations;version="[15.0.0,16.0.0)",
+- com.google.common.base;version="[15.0.0,16.0.0)",
+- com.google.common.cache;version="[15.0.0,16.0.0)",
+- com.google.common.collect;version="[15.0.0,16.0.0)",
+- com.google.common.hash;version="[15.0.0,16.0.0)",
+- com.google.common.io;version="[15.0.0,16.0.0)",
++Import-Package: com.google.common.annotations,
++ com.google.common.base,
++ com.google.common.cache,
++ com.google.common.collect,
++ com.google.common.hash,
++ com.google.common.io,
+  org.apache.commons.io;version="[2.0.0,3.0.0)",
+  org.apache.commons.io.filefilter;version="[2.0.0,3.0.0)",
+  org.apache.commons.lang3;version="[3.0.0,4.0.0)",
+diff --git a/bundles/org.eclipse.epp.logging.aeri.ide/META-INF/MANIFEST.MF b/bundles/org.eclipse.epp.logging.aeri.ide/META-INF/MANIFEST.MF
+index 0a7b08e..ea88761 100644
+--- a/bundles/org.eclipse.epp.logging.aeri.ide/META-INF/MANIFEST.MF
++++ b/bundles/org.eclipse.epp.logging.aeri.ide/META-INF/MANIFEST.MF
+@@ -28,16 +28,16 @@ Require-Bundle: org.eclipse.epp.logging.aeri.core,
+  org.apache.lucene.core;bundle-version="[3.5.0,4.0.0)",
+  org.apache.commons.lang3;bundle-version="[3.1.0,4.0.0)",
+  org.eclipse.e4.core.contexts
+-Import-Package: com.google.common.annotations;version="[15.0.0,16.0.0)",
+- com.google.common.base;version="[15.0.0,16.0.0)",
+- com.google.common.collect;version="[15.0.0,16.0.0)",
+- com.google.common.hash;version="[15.0.0,16.0.0)",
+- com.google.common.io;version="[15.0.0,16.0.0)",
+- com.google.common.util.concurrent;version="[15.0.0,16.0.0)",
+- com.google.gson;version="[2.1.0,3.0.0)",
+- com.google.gson.annotations;version="[2.1.0,3.0.0)",
+- com.google.gson.reflect;version="[2.1.0,3.0.0)",
+- com.google.gson.stream;version="[2.1.0,3.0.0)",
++Import-Package: com.google.common.annotations,
++ com.google.common.base,
++ com.google.common.collect,
++ com.google.common.hash,
++ com.google.common.io,
++ com.google.common.util.concurrent,
++ com.google.gson,
++ com.google.gson.annotations,
++ com.google.gson.reflect,
++ com.google.gson.stream,
+  org.apache.commons.io;version="[2.0.0,3.0.0)",
+  org.apache.commons.io.filefilter;version="[2.2.0,3.0.0)",
+  org.apache.commons.lang3;version="[3.0.0,4.0.0)",

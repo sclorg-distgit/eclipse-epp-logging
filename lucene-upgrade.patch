@@ -1,0 +1,196 @@
+--- bundles/org.eclipse.epp.logging.aeri.ide/META-INF/MANIFEST.MF.orig	2016-08-02 14:00:29.269019664 +0100
++++ bundles/org.eclipse.epp.logging.aeri.ide/META-INF/MANIFEST.MF	2016-08-02 14:00:29.278019557 +0100
+@@ -25,7 +25,8 @@
+  org.eclipse.osgi.services,
+  org.eclipse.core.net,
+  org.eclipse.emf.ecore,
+- org.apache.lucene.core;bundle-version="[3.5.0,4.0.0)",
++ org.apache.lucene.core;bundle-version="[5.4.1,6.0.0)",
++ org.apache.lucene.analyzers-common;bundle-version="[5.4.1,6.0.0)",
+  org.apache.commons.lang3;bundle-version="[3.1.0,4.0.0)",
+  org.eclipse.e4.core.contexts
+ Import-Package: com.google.common.annotations,
+--- tests/org.eclipse.epp.logging.aeri.ide.tests/META-INF/MANIFEST.MF.orig	2016-08-02 14:00:29.269019664 +0100
++++ tests/org.eclipse.epp.logging.aeri.ide.tests/META-INF/MANIFEST.MF	2016-08-02 14:00:29.280019534 +0100
+@@ -24,7 +24,8 @@
+  org.apache.httpcomponents.httpclient;bundle-version="4.3.6",
+  org.apache.httpcomponents.httpcore;bundle-version="4.3.3",
+  com.google.gson;bundle-version="2.2.4",
+- org.apache.lucene.core;bundle-version="3.5.0",
++ org.apache.lucene.core;bundle-version="[5.4.1,6.0.0)",
++ org.apache.lucene.analyzers-common;bundle-version="[5.4.1,6.0.0)",
+  org.eclipse.epp.logging.aeri.tests,
+  org.eclipse.e4.core.contexts
+ Import-Package: org.apache.commons.lang3.builder,
+--- tests/org.eclipse.epp.logging.aeri.core.tests/META-INF/MANIFEST.MF.orig	2016-08-02 14:00:29.269019664 +0100
++++ tests/org.eclipse.epp.logging.aeri.core.tests/META-INF/MANIFEST.MF	2016-08-02 14:00:29.283019498 +0100
+@@ -24,7 +24,8 @@
+  org.apache.httpcomponents.httpclient;bundle-version="4.3.6",
+  org.apache.httpcomponents.httpcore;bundle-version="4.3.3",
+  com.google.gson;bundle-version="2.2.4",
+- org.apache.lucene.core;bundle-version="3.5.0",
++ org.apache.lucene.core;bundle-version="[5.4.1,6.0.0)",
++ org.apache.lucene.analyzers-common;bundle-version="[5.4.1,6.0.0)",
+  org.eclipse.epp.logging.aeri.tests;bundle-version="1.100.0"
+ Import-Package: org.apache.commons.lang3.builder,
+  org.apache.commons.lang3.text;version="3.1.0"
+--- bundles/org.eclipse.epp.logging.aeri.ide/src/org/eclipse/epp/internal/logging/aeri/ide/server/LocalReportsHistory.java.orig	2016-06-05 19:11:13.000000000 +0100
++++ bundles/org.eclipse.epp.logging.aeri.ide/src/org/eclipse/epp/internal/logging/aeri/ide/server/LocalReportsHistory.java	2016-08-02 14:53:04.106306024 +0100
+@@ -20,7 +20,7 @@
+ import javax.annotation.PostConstruct;
+ import javax.annotation.PreDestroy;
+ 
+-import org.apache.lucene.analysis.KeywordAnalyzer;
++import org.apache.lucene.analysis.core.KeywordAnalyzer;
+ import org.apache.lucene.document.Document;
+ import org.apache.lucene.document.Field;
+ import org.apache.lucene.document.Field.Index;
+@@ -88,8 +88,9 @@
+ 
+     private boolean seen(String fingerprint) {
+         TermQuery query = new TermQuery(new Term(F_IDENTITY, fingerprint));
+-        IndexSearcher searcher = manager.acquire();
++        IndexSearcher searcher = null;
+         try {
++            searcher = manager.acquire();
+             TopDocs results = searcher.search(query, 1);
+             boolean foundIdenticalReport = results.totalHits > 0;
+             return foundIdenticalReport;
+@@ -98,7 +99,9 @@
+             return false;
+         } finally {
+             try {
+-                manager.release(searcher);
++                if (searcher != null) {
++                    manager.release(searcher);
++                }
+             } catch (IOException e) {
+                 log(WARN_HISTORY_NOT_AVAILABLE, e);
+             }
+@@ -143,7 +146,7 @@
+ 
+     private void reopen() {
+         try {
+-            manager.maybeReopen();
++            manager.maybeRefresh();
+         } catch (IOException e) {
+             log(WARN_HISTORY_NOT_AVAILABLE, e);
+         }
+@@ -152,12 +155,12 @@
+     @VisibleForTesting
+     protected Directory createIndexDirectory() throws IOException {
+         stateLocation.mkdirs();
+-        index = FSDirectory.open(stateLocation);
++        index = FSDirectory.open(stateLocation.toPath());
+         return index;
+     }
+ 
+     private void createWriter() throws CorruptIndexException, LockObtainFailedException, IOException {
+-        IndexWriterConfig conf = new IndexWriterConfig(Version.LUCENE_35, new KeywordAnalyzer());
++        IndexWriterConfig conf = new IndexWriterConfig(new KeywordAnalyzer());
+         conf.setOpenMode(OpenMode.CREATE_OR_APPEND);
+         writer = new IndexWriter(index, conf);
+         // to build an initial index if empty:
+@@ -174,7 +177,7 @@
+     }
+ 
+     private void createSearchManager() throws IOException {
+-        manager = new SearcherManager(index, null, null);
++        manager = new SearcherManager(index, null);
+     }
+ 
+     @PreDestroy
+--- bundles/org.eclipse.epp.logging.aeri.ide/src/org/eclipse/epp/internal/logging/aeri/ide/server/mars/ServerProblemsHistory.java.orig	2016-06-05 19:11:13.000000000 +0100
++++ bundles/org.eclipse.epp.logging.aeri.ide/src/org/eclipse/epp/internal/logging/aeri/ide/server/mars/ServerProblemsHistory.java	2016-08-02 14:54:29.823195922 +0100
+@@ -24,11 +24,12 @@
+ 
+ import org.apache.commons.io.FileUtils;
+ import org.apache.http.HttpStatus;
+-import org.apache.lucene.analysis.KeywordAnalyzer;
++import org.apache.lucene.analysis.core.KeywordAnalyzer;
+ import org.apache.lucene.document.Document;
+ import org.apache.lucene.document.Field;
+ import org.apache.lucene.document.Field.Index;
+ import org.apache.lucene.document.Field.Store;
++import org.apache.lucene.index.DirectoryReader;
+ import org.apache.lucene.index.IndexReader;
+ import org.apache.lucene.index.IndexWriter;
+ import org.apache.lucene.index.IndexWriterConfig;
+@@ -42,7 +43,6 @@
+ import org.apache.lucene.store.Directory;
+ import org.apache.lucene.store.FSDirectory;
+ import org.apache.lucene.util.IOUtils;
+-import org.apache.lucene.util.Version;
+ import org.eclipse.core.runtime.IProgressMonitor;
+ import org.eclipse.core.runtime.IStatus;
+ import org.eclipse.core.runtime.Status;
+@@ -97,22 +97,22 @@
+     @Override
+     protected void startUp() throws Exception {
+         index = createIndexDirectory();
+-        if (!IndexReader.indexExists(index)) {
++        if (!DirectoryReader.indexExists(index)) {
+             createInitialIndex(index);
+         }
+-        manager = new SearcherManager(index, null, null);
++        manager = new SearcherManager(index, null);
+     }
+ 
+     @VisibleForTesting
+     protected Directory createIndexDirectory() throws IOException {
+         stateLocation.mkdirs();
+-        FSDirectory directory = FSDirectory.open(stateLocation);
++        FSDirectory directory = FSDirectory.open(stateLocation.toPath());
+ 
+         return directory;
+     }
+ 
+     private void createInitialIndex(Directory directory) throws IOException {
+-        IndexWriterConfig conf = new IndexWriterConfig(Version.LUCENE_35, new KeywordAnalyzer());
++        IndexWriterConfig conf = new IndexWriterConfig(new KeywordAnalyzer());
+         conf.setOpenMode(OpenMode.CREATE_OR_APPEND);
+         try (IndexWriter writer = new IndexWriter(directory, conf)) {
+             Document meta = new Document();
+@@ -130,8 +130,9 @@
+     }
+ 
+     private IProblemState seen(Query q) {
+-        IndexSearcher searcher = manager.acquire();
++        IndexSearcher searcher = null;
+         try {
++            searcher = manager.acquire();
+             TopDocs results = searcher.search(q, 1);
+             if (results.totalHits > 0) {
+                 // HIT
+@@ -144,7 +145,9 @@
+             log(WARN_INDEX_NOT_AVAILABLE, e);
+         } finally {
+             try {
+-                manager.release(searcher);
++                if (searcher != null) {
++                    manager.release(searcher);
++                }
+             } catch (IOException e) {
+                 log(WARN_INDEX_NOT_AVAILABLE, e);
+             }
+@@ -190,9 +193,9 @@
+     }
+ 
+     public void replaceContent(File tempDir) throws IOException {
+-        IndexWriterConfig conf = new IndexWriterConfig(Version.LUCENE_35, new KeywordAnalyzer());
++        IndexWriterConfig conf = new IndexWriterConfig(new KeywordAnalyzer());
+         conf.setOpenMode(OpenMode.CREATE_OR_APPEND);
+-        try (IndexWriter writer = new IndexWriter(index, conf); FSDirectory newContent = FSDirectory.open(tempDir);) {
++        try (IndexWriter writer = new IndexWriter(index, conf); FSDirectory newContent = FSDirectory.open(tempDir.toPath());) {
+             writer.deleteAll();
+             writer.addIndexes(newContent);
+             writer.commit();
+@@ -202,7 +205,7 @@
+ 
+     @VisibleForTesting
+     protected void indexChanged() throws IOException {
+-        manager.maybeReopen();
++        manager.maybeRefresh();
+     }
+ 
+     @PreDestroy
