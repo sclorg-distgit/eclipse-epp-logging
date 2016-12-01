@@ -2,7 +2,7 @@
 %{!?scl:%global pkg_name %{name}}
 %{?java_common_find_provides_and_requires}
 
-%global baserelease 1
+%global baserelease 2
 
 %global git_tag NEON_R
 
@@ -44,7 +44,7 @@ set -e -x
 %setup -q -n org.eclipse.epp.logging-%{git_tag}
 %patch0 -p1
 %patch1 -p1
-%patch2 -p0 -b.orig
+%patch2 -p0
 
 sed -i -e "s/org.hamcrest;/org.hamcrest.core;/g" `find . -name MANIFEST.MF`
 sed -i -e "s/id=\"org.hamcrest\"/id=\"org.hamcrest.core\"/g" `find . -name feature.xml`
@@ -97,6 +97,9 @@ set -e -x
 %doc %{_datadir}/eclipse/droplets/epp-logging/eclipse/features/org.eclipse.epp.logging.aeri.feature_*/*.html
 
 %changelog
+* Wed Aug 03 2016 Mat Booth <mat.booth@redhat.com> - 2.0.1-1.2
+- Don't ship patch leftovers in jars
+
 * Tue Aug 02 2016 Mat Booth <mat.booth@redhat.com> - 2.0.1-1.1
 - Auto SCL-ise package for rh-eclipse46 collection
 
