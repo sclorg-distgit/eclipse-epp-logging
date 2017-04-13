@@ -2,13 +2,13 @@
 %{!?scl:%global pkg_name %{name}}
 %{?java_common_find_provides_and_requires}
 
-%global baserelease 2
+%global baserelease 1
 
-%global git_tag NEON_R
+%global git_tag d8316bfce0e1d7fc9e71121e57e73017320a3320
 
 Name:           %{?scl_prefix}eclipse-epp-logging
-Version:        2.0.1
-Release:        1.%{baserelease}%{?dist}
+Version:        2.0.3
+Release:        2.%{baserelease}%{?dist}
 Summary:        Eclipse Error Reporting tool
 License:        EPL
 URL:            http://www.eclipse.org/epp/
@@ -27,13 +27,18 @@ BuildRequires: %{?scl_prefix}eclipse-pde
 BuildRequires: %{?scl_prefix}eclipse-license
 BuildRequires: %{?scl_prefix}eclipse-emf-runtime
 BuildRequires: %{?scl_prefix}eclipse-mylyn
-BuildRequires: %{?scl_prefix_maven}apache-commons-lang3
+BuildRequires: %{?scl_prefix_java_common}apache-commons-lang3
+BuildRequires: %{?scl_prefix_java_common}lucene
+BuildRequires: %{?scl_prefix_java_common}lucene-analysis
 BuildRequires: %{?scl_prefix}guava
 BuildRequires: %{?scl_prefix_java_common}google-gson
 BuildRequires: %{?scl_prefix_java_common}httpcomponents-client
+BuildRequires: %{?scl_prefix_java_common}httpcomponents-client-cache
 BuildRequires: %{?scl_prefix_maven}maven-enforcer-plugin
 
 Requires:       %{?scl_prefix}eclipse-platform >= 1:4.6.0
+Requires:       %{?scl_prefix_java_common}lucene >= 4.8.0-6.8
+Requires:       %{?scl_prefix_java_common}lucene-analysis >= 4.8.0-6.8
 
 %description
 EPP Logging provides a set of logging plugins for the Eclipse IDE.
@@ -97,11 +102,14 @@ set -e -x
 %doc %{_datadir}/eclipse/droplets/epp-logging/eclipse/features/org.eclipse.epp.logging.aeri.feature_*/*.html
 
 %changelog
-* Wed Aug 03 2016 Mat Booth <mat.booth@redhat.com> - 2.0.1-1.2
-- Don't ship patch leftovers in jars
-
-* Tue Aug 02 2016 Mat Booth <mat.booth@redhat.com> - 2.0.1-1.1
+* Mon Jan 16 2017 Mat Booth <mat.booth@redhat.com> - 2.0.3-2.1
 - Auto SCL-ise package for rh-eclipse46 collection
+
+* Wed Jan 11 2017 Mat Booth <mat.booth@redhat.com> - 2.0.3-2
+- Update to latest release
+
+* Tue Oct 04 2016 Mat Booth <mat.booth@redhat.com> - 2.0.3-1
+- Update to Neon.1 release
 
 * Tue Aug 02 2016 Mat Booth <mat.booth@redhat.com> - 2.0.1-1
 - Port to latest lucene
@@ -117,7 +125,7 @@ set -e -x
 - Added dropins support
 
 * Mon Mar 21 2016 Sopot Cela <scela@redhat.com> - 1.100.0-0.3.gitc6ce9f2
-- Added %license statement
+- Added %%license statement
 
 * Fri Mar 18 2016 Sopot Cela <scela@redhat.com> - 1.100.0-0.2.gitc6ce9f2
 - Disabled examples module

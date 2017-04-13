@@ -9,7 +9,7 @@ index f137a68..427c954 100644
 --- a/bundles/org.eclipse.epp.logging.aeri.core/META-INF/MANIFEST.MF
 +++ b/bundles/org.eclipse.epp.logging.aeri.core/META-INF/MANIFEST.MF
 @@ -12,12 +12,12 @@ Require-Bundle: org.eclipse.core.runtime,
-  org.eclipse.jface,
+  org.eclipse.e4.core.di,
   org.eclipse.jdt.annotation;bundle-version="[1.0.0,2.0.0)";resolution:=optional,
   org.eclipse.emf.ecore
 -Import-Package: com.google.common.annotations;version="[15.0.0,16.0.0)",

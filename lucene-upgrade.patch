@@ -5,8 +5,8 @@
   org.eclipse.core.net,
   org.eclipse.emf.ecore,
 - org.apache.lucene.core;bundle-version="[3.5.0,4.0.0)",
-+ org.apache.lucene.core;bundle-version="[5.4.1,6.0.0)",
-+ org.apache.lucene.analyzers-common;bundle-version="[5.4.1,6.0.0)",
++ org.apache.lucene.core;bundle-version="[4.8.0,5.0.0)",
++ org.apache.lucene.analysis;bundle-version="[4.8.0,5.0.0)",
   org.apache.commons.lang3;bundle-version="[3.1.0,4.0.0)",
   org.eclipse.e4.core.contexts
  Import-Package: com.google.common.annotations,
@@ -17,8 +17,8 @@
   org.apache.httpcomponents.httpcore;bundle-version="4.3.3",
   com.google.gson;bundle-version="2.2.4",
 - org.apache.lucene.core;bundle-version="3.5.0",
-+ org.apache.lucene.core;bundle-version="[5.4.1,6.0.0)",
-+ org.apache.lucene.analyzers-common;bundle-version="[5.4.1,6.0.0)",
++ org.apache.lucene.core;bundle-version="[4.8.0,5.0.0)",
++ org.apache.lucene.analysis;bundle-version="[4.8.0,5.0.0)",
   org.eclipse.epp.logging.aeri.tests,
   org.eclipse.e4.core.contexts
  Import-Package: org.apache.commons.lang3.builder,
@@ -29,8 +29,8 @@
   org.apache.httpcomponents.httpcore;bundle-version="4.3.3",
   com.google.gson;bundle-version="2.2.4",
 - org.apache.lucene.core;bundle-version="3.5.0",
-+ org.apache.lucene.core;bundle-version="[5.4.1,6.0.0)",
-+ org.apache.lucene.analyzers-common;bundle-version="[5.4.1,6.0.0)",
++ org.apache.lucene.core;bundle-version="[4.8.0,5.0.0)",
++ org.apache.lucene.analysis;bundle-version="[4.8.0,5.0.0)",
   org.eclipse.epp.logging.aeri.tests;bundle-version="1.100.0"
  Import-Package: org.apache.commons.lang3.builder,
   org.apache.commons.lang3.text;version="3.1.0"
@@ -76,21 +76,6 @@
          } catch (IOException e) {
              log(WARN_HISTORY_NOT_AVAILABLE, e);
          }
-@@ -152,12 +155,12 @@
-     @VisibleForTesting
-     protected Directory createIndexDirectory() throws IOException {
-         stateLocation.mkdirs();
--        index = FSDirectory.open(stateLocation);
-+        index = FSDirectory.open(stateLocation.toPath());
-         return index;
-     }
- 
-     private void createWriter() throws CorruptIndexException, LockObtainFailedException, IOException {
--        IndexWriterConfig conf = new IndexWriterConfig(Version.LUCENE_35, new KeywordAnalyzer());
-+        IndexWriterConfig conf = new IndexWriterConfig(new KeywordAnalyzer());
-         conf.setOpenMode(OpenMode.CREATE_OR_APPEND);
-         writer = new IndexWriter(index, conf);
-         // to build an initial index if empty:
 @@ -174,7 +177,7 @@
      }
  
@@ -100,9 +85,9 @@
      }
  
      @PreDestroy
---- bundles/org.eclipse.epp.logging.aeri.ide/src/org/eclipse/epp/internal/logging/aeri/ide/server/mars/ServerProblemsHistory.java.orig	2016-06-05 19:11:13.000000000 +0100
-+++ bundles/org.eclipse.epp.logging.aeri.ide/src/org/eclipse/epp/internal/logging/aeri/ide/server/mars/ServerProblemsHistory.java	2016-08-02 14:54:29.823195922 +0100
-@@ -24,11 +24,12 @@
+--- bundles/org.eclipse.epp.logging.aeri.ide/src/org/eclipse/epp/internal/logging/aeri/ide/server/mars/ProblemsDatabaseProblemsHistory.java.orig	2016-06-05 19:11:13.000000000 +0100
++++ bundles/org.eclipse.epp.logging.aeri.ide/src/org/eclipse/epp/internal/logging/aeri/ide/server/mars/ProblemsDatabaseProblemsHistory.java	2016-08-02 14:54:29.823195922 +0100
+@@ -25,11 +25,12 @@
  
  import org.apache.commons.io.FileUtils;
  import org.apache.http.HttpStatus;
@@ -116,15 +101,7 @@
  import org.apache.lucene.index.IndexReader;
  import org.apache.lucene.index.IndexWriter;
  import org.apache.lucene.index.IndexWriterConfig;
-@@ -42,7 +43,6 @@
- import org.apache.lucene.store.Directory;
- import org.apache.lucene.store.FSDirectory;
- import org.apache.lucene.util.IOUtils;
--import org.apache.lucene.util.Version;
- import org.eclipse.core.runtime.IProgressMonitor;
- import org.eclipse.core.runtime.IStatus;
- import org.eclipse.core.runtime.Status;
-@@ -97,22 +97,22 @@
+@@ -97,10 +97,10 @@
      @Override
      protected void startUp() throws Exception {
          index = createIndexDirectory();
@@ -137,24 +114,10 @@
      }
  
      @VisibleForTesting
-     protected Directory createIndexDirectory() throws IOException {
-         stateLocation.mkdirs();
--        FSDirectory directory = FSDirectory.open(stateLocation);
-+        FSDirectory directory = FSDirectory.open(stateLocation.toPath());
- 
-         return directory;
-     }
- 
-     private void createInitialIndex(Directory directory) throws IOException {
--        IndexWriterConfig conf = new IndexWriterConfig(Version.LUCENE_35, new KeywordAnalyzer());
-+        IndexWriterConfig conf = new IndexWriterConfig(new KeywordAnalyzer());
-         conf.setOpenMode(OpenMode.CREATE_OR_APPEND);
-         try (IndexWriter writer = new IndexWriter(directory, conf)) {
-             Document meta = new Document();
 @@ -130,8 +130,9 @@
      }
  
-     private IProblemState seen(Query q) {
+     private Optional<IProblemState> seen(Query q) {
 -        IndexSearcher searcher = manager.acquire();
 +        IndexSearcher searcher = null;
          try {
@@ -162,29 +125,6 @@
              TopDocs results = searcher.search(q, 1);
              if (results.totalHits > 0) {
                  // HIT
-@@ -144,7 +145,9 @@
-             log(WARN_INDEX_NOT_AVAILABLE, e);
-         } finally {
-             try {
--                manager.release(searcher);
-+                if (searcher != null) {
-+                    manager.release(searcher);
-+                }
-             } catch (IOException e) {
-                 log(WARN_INDEX_NOT_AVAILABLE, e);
-             }
-@@ -190,9 +193,9 @@
-     }
- 
-     public void replaceContent(File tempDir) throws IOException {
--        IndexWriterConfig conf = new IndexWriterConfig(Version.LUCENE_35, new KeywordAnalyzer());
-+        IndexWriterConfig conf = new IndexWriterConfig(new KeywordAnalyzer());
-         conf.setOpenMode(OpenMode.CREATE_OR_APPEND);
--        try (IndexWriter writer = new IndexWriter(index, conf); FSDirectory newContent = FSDirectory.open(tempDir);) {
-+        try (IndexWriter writer = new IndexWriter(index, conf); FSDirectory newContent = FSDirectory.open(tempDir.toPath());) {
-             writer.deleteAll();
-             writer.addIndexes(newContent);
-             writer.commit();
 @@ -202,7 +205,7 @@
  
      @VisibleForTesting
@@ -194,3 +134,98 @@
      }
  
      @PreDestroy
+--- bundles/org.eclipse.epp.logging.aeri.ide/src/org/eclipse/epp/internal/logging/aeri/ide/server/rest/LuceneHttpCacheStorage.java.orig	2017-01-11 18:35:13.558544352 +0000
++++ bundles/org.eclipse.epp.logging.aeri.ide/src/org/eclipse/epp/internal/logging/aeri/ide/server/rest/LuceneHttpCacheStorage.java	2017-01-11 18:59:47.340053399 +0000
+@@ -28,12 +28,12 @@
+ import org.apache.http.impl.client.cache.HeapResource;
+ import org.apache.http.message.BasicHeader;
+ import org.apache.http.message.BasicStatusLine;
+-import org.apache.lucene.analysis.KeywordAnalyzer;
++import org.apache.lucene.analysis.core.KeywordAnalyzer;
+ import org.apache.lucene.document.Document;
+ import org.apache.lucene.document.Field;
+ import org.apache.lucene.document.Field.Index;
+ import org.apache.lucene.document.Field.Store;
+-import org.apache.lucene.document.Fieldable;
++import org.apache.lucene.index.IndexableField;
+ import org.apache.lucene.index.IndexWriter;
+ import org.apache.lucene.index.IndexWriterConfig;
+ import org.apache.lucene.index.IndexWriterConfig.OpenMode;
+@@ -70,12 +70,12 @@
+         IndexWriterConfig writerConfig = new IndexWriterConfig(Version.LUCENE_35, new KeywordAnalyzer());
+         writerConfig.setOpenMode(OpenMode.CREATE_OR_APPEND);
+         writer = new IndexWriter(directory, writerConfig);
+-        searcherManager = new SearcherManager(writer, true, null, null);
++        searcherManager = new SearcherManager(writer, true, null);
+     }
+ 
+     @Override
+     public HttpCacheEntry getEntry(String key) throws IOException {
+-        searcherManager.maybeReopen();
++        searcherManager.maybeRefresh();
+         IndexSearcher searcher = searcherManager.acquire();
+         try {
+             Query query = new TermQuery(new Term(KEY_FIELD_NAME, key));
+@@ -132,14 +132,14 @@
+     private Document toLuceneDocument(String key, HttpCacheEntry entry) throws IOException {
+         Document document = new Document();
+         document.add(new Field(KEY_FIELD_NAME, key, Store.NO, Index.NOT_ANALYZED_NO_NORMS));
+-        for (Fieldable field : toLuceneFields(entry)) {
++        for (IndexableField field : toLuceneFields(entry)) {
+             document.add(field);
+         }
+         return document;
+     }
+ 
+-    private List<Fieldable> toLuceneFields(HttpCacheEntry entry) throws IOException {
+-        List<Fieldable> fields = new ArrayList<>();
++    private List<IndexableField> toLuceneFields(HttpCacheEntry entry) throws IOException {
++        List<IndexableField> fields = new ArrayList<>();
+ 
+         fields.add(new Field(REQUEST_DATE_FIELD_NAME, Long.toString(entry.getRequestDate().getTime()), Store.YES, Index.NO));
+ 
+@@ -174,7 +174,7 @@
+         return fields;
+     }
+ 
+-    private HttpCacheEntry fromLuceneFields(List<Fieldable> fields) throws IOException {
++    private HttpCacheEntry fromLuceneFields(List<IndexableField> fields) throws IOException {
+         Date requestDate = null;
+         Date responseDate = null;
+         int statusCode = Integer.MIN_VALUE;
+@@ -186,7 +186,7 @@
+         Resource body = null;
+         Map<String, String> variantMap = new HashMap<>();
+ 
+-        for (Fieldable field : fields) {
++        for (IndexableField field : fields) {
+             String fieldName = field.name();
+             if (REQUEST_DATE_FIELD_NAME.equals(fieldName)) {
+                 requestDate = parseDateField(field);
+@@ -215,7 +215,7 @@
+                     throw new IOException(e);
+                 }
+             } else if (BODY_FIELD_NAME.equals(fieldName)) {
+-                body = new HeapResource(field.getBinaryValue());
++                body = new HeapResource(field.binaryValue().bytes);
+             } else if (fieldName.startsWith(VARIANT_FIELD_NAMES)) {
+                 String variantKey = fieldName.substring(VARIANT_FIELD_NAMES_LENGTH + 1);
+                 String cacheKey = field.stringValue();
+@@ -235,7 +235,7 @@
+         }
+     }
+ 
+-    private Date parseDateField(Fieldable field) throws IOException {
++    private Date parseDateField(IndexableField field) throws IOException {
+         try {
+             String stringValue = field.stringValue();
+             long longValue = Long.parseLong(stringValue);
+@@ -245,7 +245,7 @@
+         }
+     }
+ 
+-    private int parseIntField(Fieldable field) throws IOException {
++    private int parseIntField(IndexableField field) throws IOException {
+         try {
+             String stringValue = field.stringValue();
+             return Integer.parseInt(stringValue);
